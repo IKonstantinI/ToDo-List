@@ -1,17 +1,17 @@
 import UIKit
 
 protocol TaskDetailRouterProtocol: AnyObject {
-    func dismiss()
+    func closeModule()
 }
 
 final class TaskDetailRouter: TaskDetailRouterProtocol {
-    weak var viewController: UIViewController?
+    private weak var viewController: UIViewController?
     
     init(viewController: UIViewController) {
         self.viewController = viewController
     }
     
-    func dismiss() {
+    func closeModule() {
         viewController?.dismiss(animated: true)
     }
 } 

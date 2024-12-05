@@ -3,13 +3,13 @@ import UIKit
 protocol TaskListViewProtocol: AnyObject {
     func updateTasks(with tasks: [TaskEntity])
     func removeTask(_ task: TaskEntity)
-    func showError(_ error: Error)
     func showLoading()
     func hideLoading()
+    func showError(_ error: Error)
 }
 
 final class TaskListViewController: UIViewController {
-    private let presenter: TaskListPresenterProtocol
+    private var presenter: TaskListPresenterProtocol!
     private let tableView = UITableView()
     private var tasks: [TaskEntity] = []
     private let searchController = UISearchController(searchResultsController: nil)
@@ -39,14 +39,7 @@ final class TaskListViewController: UIViewController {
         return button
     }()
     
-    init(presenter: TaskListPresenterProtocol) {
-        self.presenter = presenter
-        super.init(nibName: nil, bundle: nil)
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
+    private let activityIndicator = UIActivityIndicatorView(style: .large)
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -77,6 +70,9 @@ final class TaskListViewController: UIViewController {
             emptyStateLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             emptyStateLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
+        
+        view.addSubview(activityIndicator)
+        activityIndicator.center = view.center
     }
     
     private func setupTableView() {
@@ -166,6 +162,10 @@ final class TaskListViewController: UIViewController {
     @objc private func addButtonTapped() {
         presenter.addNewTask()
     }
+    
+    func configure(with presenter: TaskListPresenterProtocol) {
+        self.presenter = presenter
+    }
 }
 
 extension TaskListViewController: UITableViewDataSource, UITableViewDelegate {
@@ -230,6 +230,16 @@ extension TaskListViewController: TaskListViewProtocol {
         }
     }
     
+    func showLoading() {
+        activityIndicator.startAnimating()
+        tableView.isUserInteractionEnabled = false
+    }
+    
+    func hideLoading() {
+        activityIndicator.stopAnimating()
+        tableView.isUserInteractionEnabled = true
+    }
+    
     func showError(_ error: Error) {
         let alert = UIAlertController(
             title: "Ошибка",
@@ -238,14 +248,6 @@ extension TaskListViewController: TaskListViewProtocol {
         )
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
-    }
-    
-    func showLoading() {
-        // Implementation for showing loading state
-    }
-    
-    func hideLoading() {
-        // Implementation for hiding loading state
     }
 }
 

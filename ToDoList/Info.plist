@@ -40,5 +40,7 @@
     <string>LaunchScreen</string>
     <key>UIUserInterfaceStyle</key>
     <string>Dark</string>
+    <key>NSAppTransportSecurityUsageDescription</key>
+    <string>Приложению необходим доступ к сети для загрузки списка задач</string>
 </dict>
 </plist> 

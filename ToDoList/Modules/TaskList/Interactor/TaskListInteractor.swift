@@ -1,7 +1,9 @@
+import Foundation
+import CoreData
+
 protocol TaskListInteractorProtocol: AnyObject {
     func fetchTasks() async throws -> [TaskEntity]
-    func fetchTasksWithRefresh() async throws -> [TaskEntity]
-    func createTask(title: String, description: String) async throws
+    func createTask(title: String, description: String) async throws -> TaskEntity
     func updateTask(_ task: TaskEntity) async throws
     func deleteTask(_ task: TaskEntity) async throws
     func searchTasks(query: String) async throws -> [TaskEntity]
@@ -18,12 +20,15 @@ final class TaskListInteractor: TaskListInteractorProtocol {
         return try await taskService.fetchTasks()
     }
     
-    func fetchTasksWithRefresh() async throws -> [TaskEntity] {
-        return try await taskService.fetchTasksWithRefresh()
-    }
-    
-    func createTask(title: String, description: String) async throws {
-        _ = try await taskService.createTask(title: title, description: description)
+    func createTask(title: String, description: String) async throws -> TaskEntity {
+        let newTask = TaskEntity(
+            id: UUID(),
+            title: title,
+            description: description,
+            createdAt: Date(),
+            isCompleted: false
+        )
+        return try await taskService.createTask(newTask)
     }
     
     func updateTask(_ task: TaskEntity) async throws {

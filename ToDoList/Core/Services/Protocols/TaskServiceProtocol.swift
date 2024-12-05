@@ -1,12 +1,21 @@
 import Foundation
 
 protocol TaskServiceProtocol {
+    // Create
+    func createTask(_ task: TaskEntity) async throws -> TaskEntity
+    
+    // Read
     func fetchTasks() async throws -> [TaskEntity]
-    func fetchTasksWithRefresh() async throws -> [TaskEntity]
-    func createTask(title: String, description: String) async throws -> TaskEntity
-    func updateTask(_ task: TaskEntity) async throws
-    func deleteTask(_ task: TaskEntity) async throws
     func searchTasks(query: String) async throws -> [TaskEntity]
+    
+    // Update
+    func updateTask(_ task: TaskEntity) async throws
+    
+    // Delete
+    func deleteTask(_ task: TaskEntity) async throws
+    
+    // Initial Setup
+    func performInitialSetupIfNeeded() async throws
 }
 
 enum TaskServiceError: LocalizedError {

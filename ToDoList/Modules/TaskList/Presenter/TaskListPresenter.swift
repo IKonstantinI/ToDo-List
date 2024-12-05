@@ -101,7 +101,7 @@ final class TaskListPresenter: TaskListPresenterProtocol {
             }
             
             do {
-                let tasks = try await interactor.fetchTasksWithRefresh()
+                let tasks = try await interactor.fetchTasks()
                 await MainActor.run {
                     view?.updateTasks(with: tasks)
                     view?.hideLoading()

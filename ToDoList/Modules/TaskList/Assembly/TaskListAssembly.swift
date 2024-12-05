@@ -3,33 +3,25 @@ import CoreData
 
 enum TaskListAssembly {
     static func createModule(context: NSManagedObjectContext) -> TaskListViewController {
-        let taskService = TaskService(context: context)
+        let userDefaultsService = UserDefaultsService()
+        let networkService = NetworkService()
+        let taskService = TaskService(
+            context: context,
+            networkService: networkService,
+            userDefaultsService: userDefaultsService
+        )
+        
+        let view = TaskListViewController()
         let interactor = TaskListInteractor(taskService: taskService)
-        
-        let dummyView = TaskListViewController(presenter: DummyPresenter())
-        let router = TaskListRouter(viewController: dummyView, context: context)
-        
+        let router = TaskListRouter(viewController: view, context: context)
         let presenter = TaskListPresenter(
-            view: dummyView,
+            view: view,
             interactor: interactor,
             router: router
         )
         
-        let view = TaskListViewController(presenter: presenter)
-        
-        router.viewController = view
-        presenter.view = view
+        view.configure(with: presenter)
         
         return view
     }
-}
-
-private class DummyPresenter: TaskListPresenterProtocol {
-    func viewDidLoad() {}
-    func addNewTask() {}
-    func didSelectTask(_ task: TaskEntity) {}
-    func deleteTask(_ task: TaskEntity) {}
-    func updateTaskStatus(_ task: TaskEntity) {}
-    func searchTasks(query: String) {}
-    func refreshTasks() {}
 } 

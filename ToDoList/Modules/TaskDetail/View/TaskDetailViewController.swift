@@ -3,10 +3,13 @@ import UIKit
 protocol TaskDetailViewProtocol: AnyObject {
     func updateView(with task: TaskEntity?)
     func showError(_ error: Error)
+    func showLoading()
+    func hideLoading()
+    func close()
 }
 
 final class TaskDetailViewController: UIViewController {
-    var presenter: TaskDetailPresenterProtocol!
+    private var presenter: TaskDetailPresenterProtocol!
     
     private let titleTextField: UITextField = {
         let textField = UITextField()
@@ -24,6 +27,8 @@ final class TaskDetailViewController: UIViewController {
         textView.layer.cornerRadius = 8
         return textView
     }()
+    
+    private let activityIndicator = UIActivityIndicatorView(style: .large)
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -51,6 +56,9 @@ final class TaskDetailViewController: UIViewController {
             descriptionTextView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             descriptionTextView.heightAnchor.constraint(equalToConstant: 200)
         ])
+        
+        view.addSubview(activityIndicator)
+        activityIndicator.center = view.center
     }
     
     private func setupNavigationBar() {
@@ -88,6 +96,10 @@ final class TaskDetailViewController: UIViewController {
     @objc private func cancelButtonTapped() {
         presenter.cancelEditing()
     }
+    
+    func configure(with presenter: TaskDetailPresenterProtocol) {
+        self.presenter = presenter
+    }
 }
 
 extension TaskDetailViewController: TaskDetailViewProtocol {
@@ -104,6 +116,20 @@ extension TaskDetailViewController: TaskDetailViewProtocol {
         )
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
+    }
+    
+    func showLoading() {
+        activityIndicator.startAnimating()
+        view.isUserInteractionEnabled = false
+    }
+    
+    func hideLoading() {
+        activityIndicator.stopAnimating()
+        view.isUserInteractionEnabled = true
+    }
+    
+    func close() {
+        dismiss(animated: true)
     }
 }
 

@@ -7,43 +7,41 @@ protocol TaskDetailPresenterProtocol: AnyObject {
 
 final class TaskDetailPresenter: TaskDetailPresenterProtocol {
     weak var view: TaskDetailViewProtocol?
-    private let router: TaskDetailRouterProtocol
     private let interactor: TaskDetailInteractorProtocol
-    private let task: TaskEntity?
+    private let router: TaskDetailRouterProtocol
+    private let editingTask: TaskEntity?
     
-    var isEditMode: Bool {
-        task != nil
-    }
+    var isEditMode: Bool { editingTask != nil }
     
     init(
         view: TaskDetailViewProtocol,
-        router: TaskDetailRouterProtocol,
         interactor: TaskDetailInteractorProtocol,
-        task: TaskEntity? = nil
+        router: TaskDetailRouterProtocol,
+        editingTask: TaskEntity? = nil
     ) {
         self.view = view
-        self.router = router
         self.interactor = interactor
-        self.task = task
+        self.router = router
+        self.editingTask = editingTask
     }
     
     func viewDidLoad() {
-        view?.updateView(with: task)
+        view?.updateView(with: editingTask)
     }
     
     func saveTask(title: String, description: String) {
         Task {
             do {
-                if let existingTask = task {
-                    var updatedTask = existingTask
+                if let editingTask = editingTask {
+                    var updatedTask = editingTask
                     updatedTask.title = title
                     updatedTask.description = description
                     try await interactor.updateTask(updatedTask)
                 } else {
-                    _ = try await interactor.createTask(title: title, description: description)
+                    try await interactor.createTask(title: title, description: description)
                 }
                 await MainActor.run {
-                    router.dismiss()
+                    router.closeModule()
                 }
             } catch {
                 await MainActor.run {
@@ -54,6 +52,6 @@ final class TaskDetailPresenter: TaskDetailPresenterProtocol {
     }
     
     func cancelEditing() {
-        router.dismiss()
+        router.closeModule()
     }
 } 

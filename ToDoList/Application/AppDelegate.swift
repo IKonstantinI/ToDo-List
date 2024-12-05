@@ -20,7 +20,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                 try context.save()
             } catch {
                 let nserror = error as NSError
-                fatalError("Unresolved error \(nserror), \(nserror.userInfo)")
+                fatalError("Unresolved error \(nserror)")
             }
         }
     }
