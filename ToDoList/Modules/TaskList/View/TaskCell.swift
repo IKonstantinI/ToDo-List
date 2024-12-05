@@ -3,37 +3,47 @@ import UIKit
 final class TaskCell: UITableViewCell {
     static let reuseIdentifier = "TaskCell"
     
+    private let checkboxButton: UIButton = {
+        let button = UIButton()
+        let config = UIImage.SymbolConfiguration(pointSize: 28, weight: .regular)
+        let emptyCircle = UIImage(systemName: "circle", withConfiguration: config)?.withRenderingMode(.alwaysTemplate)
+        let filledCircle = UIImage(systemName: "checkmark.circle.fill", withConfiguration: config)?.withRenderingMode(.alwaysTemplate)
+        button.setImage(emptyCircle, for: .normal)
+        button.setImage(filledCircle, for: .selected)
+        button.tintColor = .systemYellow
+        return button
+    }()
+    
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 16, weight: .medium)
-        label.numberOfLines = 1
+        label.font = .systemFont(ofSize: 17)
+        label.textColor = .white
+        label.numberOfLines = 0
         return label
     }()
     
     private let descriptionLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 14)
-        label.textColor = .secondaryLabel
-        label.numberOfLines = 2
+        label.textColor = .systemGray
+        label.numberOfLines = 0
         return label
     }()
     
     private let dateLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 12)
-        label.textColor = .tertiaryLabel
+        label.textColor = .systemGray
         return label
     }()
     
-    private let checkmarkButton: UIButton = {
-        let button = UIButton()
-        button.setImage(UIImage(systemName: "circle"), for: .normal)
-        button.setImage(UIImage(systemName: "checkmark.circle.fill"), for: .selected)
-        button.tintColor = .systemBlue
-        return button
+    private let stackView: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 4
+        stack.alignment = .leading
+        return stack
     }()
-    
-    var onTaskStatusChanged: ((Bool) -> Void)?
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -45,53 +55,73 @@ final class TaskCell: UITableViewCell {
     }
     
     private func setupUI() {
-        [checkmarkButton, titleLabel, descriptionLabel, dateLabel].forEach {
+        backgroundColor = .black
+        contentView.backgroundColor = .black
+        selectionStyle = .none
+        
+        [checkboxButton, stackView].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             contentView.addSubview($0)
         }
         
-        checkmarkButton.addTarget(
-            self,
-            action: #selector(checkmarkButtonTapped),
-            for: .touchUpInside
-        )
+        [titleLabel, descriptionLabel, dateLabel].forEach {
+            stackView.addArrangedSubview($0)
+        }
         
         NSLayoutConstraint.activate([
-            checkmarkButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            checkmarkButton.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            checkmarkButton.widthAnchor.constraint(equalToConstant: 24),
-            checkmarkButton.heightAnchor.constraint(equalToConstant: 24),
+            checkboxButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            checkboxButton.topAnchor.constraint(equalTo: titleLabel.topAnchor),
+            checkboxButton.widthAnchor.constraint(equalToConstant: 32),
+            checkboxButton.heightAnchor.constraint(equalToConstant: 32),
             
-            titleLabel.leadingAnchor.constraint(equalTo: checkmarkButton.trailingAnchor, constant: 12),
-            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
-            
-            descriptionLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            descriptionLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
-            descriptionLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
-            
-            dateLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            dateLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
-            dateLabel.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 4),
-            dateLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8)
+            stackView.leadingAnchor.constraint(equalTo: checkboxButton.trailingAnchor, constant: 12),
+            stackView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            stackView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
+            stackView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -12)
         ])
+        
+        checkboxButton.addTarget(self, action: #selector(checkboxTapped), for: .touchUpInside)
     }
     
-    @objc private func checkmarkButtonTapped() {
-        checkmarkButton.isSelected.toggle()
-        onTaskStatusChanged?(checkmarkButton.isSelected)
+    @objc private func checkboxTapped() {
+        checkboxButton.isSelected.toggle()
+        updateTaskAppearance()
+        onTaskStatusChanged?(checkboxButton.isSelected)
     }
+    
+    private func updateTaskAppearance() {
+        if checkboxButton.isSelected {
+            titleLabel.attributedText = NSAttributedString(
+                string: titleLabel.text ?? "",
+                attributes: [
+                    .strikethroughStyle: NSUnderlineStyle.single.rawValue,
+                    .strikethroughColor: UIColor.white,
+                    .foregroundColor: UIColor.systemGray
+                ]
+            )
+            descriptionLabel.textColor = .systemGray2
+        } else {
+            titleLabel.attributedText = nil
+            titleLabel.text = task?.title
+            titleLabel.textColor = .white
+            descriptionLabel.textColor = .systemGray
+        }
+    }
+    
+    private var task: TaskEntity?
+    var onTaskStatusChanged: ((Bool) -> Void)?
     
     func configure(with task: TaskEntity, onStatusChanged: @escaping (Bool) -> Void) {
+        self.task = task
         titleLabel.text = task.title
         descriptionLabel.text = task.description
-        checkmarkButton.isSelected = task.isCompleted
+        checkboxButton.isSelected = task.isCompleted
         
         let dateFormatter = DateFormatter()
-        dateFormatter.dateStyle = .medium
-        dateFormatter.timeStyle = .short
+        dateFormatter.dateFormat = "dd/MM/yy"
         dateLabel.text = dateFormatter.string(from: task.createdAt)
         
         self.onTaskStatusChanged = onStatusChanged
+        updateTaskAppearance()
     }
 } 

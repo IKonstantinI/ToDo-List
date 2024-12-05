@@ -13,8 +13,31 @@ final class TaskListViewController: UIViewController {
     private let tableView = UITableView()
     private var tasks: [TaskEntity] = []
     private let searchController = UISearchController(searchResultsController: nil)
-    private let refreshControl = UIRefreshControl()
-    private let activityIndicator = UIActivityIndicatorView(style: .medium)
+    
+    private let emptyStateLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Нет задач"
+        label.textColor = .systemGray
+        label.textAlignment = .center
+        label.isHidden = true
+        return label
+    }()
+    
+    private let taskCountLabel: UILabel = {
+        let label = UILabel()
+        label.textColor = .systemGray
+        label.font = .systemFont(ofSize: 14)
+        return label
+    }()
+    
+    private let addButton: UIButton = {
+        let button = UIButton()
+        let image = UIImage(systemName: "plus.circle.fill")
+        button.setImage(image, for: .normal)
+        button.tintColor = .systemYellow
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
     
     init(presenter: TaskListPresenterProtocol) {
         self.presenter = presenter
@@ -31,23 +54,28 @@ final class TaskListViewController: UIViewController {
         setupTableView()
         setupNavigationBar()
         setupSearchController()
-        setupRefreshControl()
-        setupActivityIndicator()
+        setupBottomBar()
         presenter.viewDidLoad()
     }
     
     private func setupUI() {
-        view.backgroundColor = .systemBackground
-        title = "Задачи"
+        view.backgroundColor = .black
+        tableView.backgroundColor = .black
+        tableView.separatorStyle = .none
         
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(tableView)
+        [tableView, emptyStateLabel].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview($0)
+        }
         
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -50),
+            
+            emptyStateLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            emptyStateLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
     }
     
@@ -60,41 +88,83 @@ final class TaskListViewController: UIViewController {
     }
     
     private func setupNavigationBar() {
-        let addButton = UIBarButtonItem(
-            barButtonSystemItem: .add,
-            target: self,
-            action: #selector(addButtonTapped)
-        )
-        navigationItem.rightBarButtonItem = addButton
+        title = "Задачи"
+        
+        // Настройка стиля навигации
+        navigationController?.navigationBar.barStyle = .black
+        navigationController?.navigationBar.tintColor = .white
+        
+        // Настройка Large Title
+        navigationController?.navigationBar.prefersLargeTitles = true
+        navigationItem.largeTitleDisplayMode = .always
+        
+        // Настройка шрифта и цвета для Large Title
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = .black
+        appearance.largeTitleTextAttributes = [
+            .foregroundColor: UIColor.white,
+            .font: UIFont.systemFont(ofSize: 34, weight: .bold)
+        ]
+        appearance.titleTextAttributes = [
+            .foregroundColor: UIColor.white,
+            .font: UIFont.systemFont(ofSize: 17, weight: .semibold)
+        ]
+        
+        navigationController?.navigationBar.standardAppearance = appearance
+        navigationController?.navigationBar.scrollEdgeAppearance = appearance
+        navigationController?.navigationBar.compactAppearance = appearance
     }
     
     private func setupSearchController() {
         searchController.searchResultsUpdater = self
         searchController.obscuresBackgroundDuringPresentation = false
-        searchController.searchBar.placeholder = "Поиск задач"
+        searchController.searchBar.searchTextField.backgroundColor = .systemGray6.withAlphaComponent(0.1)
+        searchController.searchBar.tintColor = .white
+        searchController.searchBar.searchTextField.textColor = .white
+        searchController.searchBar.searchTextField.leftView?.tintColor = .systemGray
+        searchController.searchBar.searchTextField.attributedPlaceholder = NSAttributedString(
+            string: "Search",
+            attributes: [.foregroundColor: UIColor.systemGray]
+        )
         navigationItem.searchController = searchController
         definesPresentationContext = true
     }
     
-    private func setupRefreshControl() {
-        refreshControl.addTarget(self, action: #selector(refreshData), for: .valueChanged)
-        tableView.refreshControl = refreshControl
+    private func setupBottomBar() {
+        let bottomBar = UIView()
+        bottomBar.backgroundColor = .black
+        bottomBar.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(bottomBar)
+        
+        bottomBar.addSubview(taskCountLabel)
+        bottomBar.addSubview(addButton)
+        
+        NSLayoutConstraint.activate([
+            bottomBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            bottomBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            bottomBar.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            bottomBar.heightAnchor.constraint(equalToConstant: 50),
+            
+            taskCountLabel.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
+            taskCountLabel.leadingAnchor.constraint(equalTo: bottomBar.leadingAnchor, constant: 16),
+            
+            addButton.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
+            addButton.trailingAnchor.constraint(equalTo: bottomBar.trailingAnchor, constant: -16),
+            addButton.widthAnchor.constraint(equalToConstant: 44),
+            addButton.heightAnchor.constraint(equalToConstant: 44)
+        ])
+        
+        addButton.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
     }
     
-    private func setupActivityIndicator() {
-        activityIndicator.hidesWhenStopped = true
-        navigationItem.rightBarButtonItems = [
-            navigationItem.rightBarButtonItem!,
-            UIBarButtonItem(customView: activityIndicator)
-        ]
+    private func updateTaskCount() {
+        taskCountLabel.text = "\(tasks.count) Задач"
+        emptyStateLabel.isHidden = !tasks.isEmpty
     }
     
     @objc private func addButtonTapped() {
         presenter.addNewTask()
-    }
-    
-    @objc private func refreshData() {
-        presenter.refreshTasks()
     }
 }
 
@@ -149,12 +219,14 @@ extension TaskListViewController: TaskListViewProtocol {
     func updateTasks(with tasks: [TaskEntity]) {
         self.tasks = tasks
         tableView.reloadData()
+        updateTaskCount()
     }
     
     func removeTask(_ task: TaskEntity) {
         if let index = tasks.firstIndex(where: { $0.id == task.id }) {
             tasks.remove(at: index)
             tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
+            updateTaskCount()
         }
     }
     
@@ -169,12 +241,11 @@ extension TaskListViewController: TaskListViewProtocol {
     }
     
     func showLoading() {
-        activityIndicator.startAnimating()
+        // Implementation for showing loading state
     }
     
     func hideLoading() {
-        activityIndicator.stopAnimating()
-        refreshControl.endRefreshing()
+        // Implementation for hiding loading state
     }
 }
 

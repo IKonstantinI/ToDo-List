@@ -175,4 +175,42 @@ final class TaskService: TaskServiceProtocol {
     func fetchTasksWithRefresh() async throws -> [TaskEntity] {
         return try await fetchTasks(forceRefresh: true)
     }
+    
+    private func clearOldTasks() async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "TaskMO")
+            let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+            deleteRequest.resultType = .resultTypeObjectIDs
+            
+            do {
+                let result = try context.execute(deleteRequest) as? NSBatchDeleteResult
+                let changes: [AnyHashable: Any] = [
+                    NSDeletedObjectsKey: result?.result as? [NSManagedObjectID] ?? []
+                ]
+                NSManagedObjectContext.mergeChanges(fromRemoteContextSave: changes, into: [context])
+                continuation.resume()
+            } catch {
+                continuation.resume(throwing: TaskServiceError.saveFailed)
+            }
+        }
+    }
+    
+    private func saveContext() throws {
+        if context.hasChanges {
+            try context.save()
+        }
+    }
+    
+    private func performInBackground<T>(_ block: @escaping (NSManagedObjectContext) throws -> T) async throws -> T {
+        try await withCheckedThrowingContinuation { continuation in
+            context.perform {
+                do {
+                    let result = try block(self.context)
+                    continuation.resume(returning: result)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
 } 
