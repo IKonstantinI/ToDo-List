@@ -38,15 +38,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let rootViewController = TaskListAssembly.createModule(context: context)
         let navigationController = UINavigationController(rootViewController: rootViewController)
         
-        if #available(iOS 15.0, *) {
-            let appearance = UINavigationBarAppearance()
-            appearance.configureWithOpaqueBackground()
-            appearance.backgroundColor = .black
-            appearance.titleTextAttributes = [.foregroundColor: UIColor.white]
-            UINavigationBar.appearance().standardAppearance = appearance
-            UINavigationBar.appearance().scrollEdgeAppearance = appearance
-        }
-        
         window.rootViewController = navigationController
         window.makeKeyAndVisible()
         

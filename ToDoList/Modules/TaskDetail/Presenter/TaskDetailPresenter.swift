@@ -38,7 +38,7 @@ final class TaskDetailPresenter: TaskDetailPresenterProtocol {
                     updatedTask.description = description
                     try await interactor.updateTask(updatedTask)
                 } else {
-                    try await interactor.createTask(title: title, description: description)
+                    let _ = try await interactor.createTask(title: title, description: description)
                 }
                 await MainActor.run {
                     router.closeModule()
