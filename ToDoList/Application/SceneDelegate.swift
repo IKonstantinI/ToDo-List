@@ -19,22 +19,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
         context.automaticallyMergesChangesFromParent = true
         
-        let userDefaultsService = UserDefaultsService()
-        let networkService = NetworkService()
-        let taskService = TaskService(
-            context: context,
-            networkService: networkService,
-            userDefaultsService: userDefaultsService
-        )
-        
-        Task {
-            do {
-                try await taskService.performInitialSetupIfNeeded()
-            } catch {
-                print("Initial setup failed:", error)
-            }
-        }
-        
         let rootViewController = TaskListAssembly.createModule(context: context)
         let navigationController = UINavigationController(rootViewController: rootViewController)
         

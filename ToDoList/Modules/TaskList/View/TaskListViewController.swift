@@ -23,19 +23,32 @@ final class TaskListViewController: UIViewController {
         return label
     }()
     
+    private let bottomPanel: UIView = {
+        let view = UIView()
+        view.backgroundColor = .systemGray6
+        view.layer.shadowColor = UIColor.black.cgColor
+        view.layer.shadowOffset = CGSize(width: 0, height: -2)
+        view.layer.shadowOpacity = 0.1
+        view.layer.shadowRadius = 4
+        return view
+    }()
+    
     private let taskCountLabel: UILabel = {
         let label = UILabel()
-        label.textColor = .systemGray
+        label.textColor = .label
         label.font = .systemFont(ofSize: 14)
+        label.textAlignment = .center
         return label
     }()
     
     private let addButton: UIButton = {
         let button = UIButton()
-        let image = UIImage(systemName: "plus.circle.fill")
+        let config = UIImage.SymbolConfiguration(pointSize: 24, weight: .medium)
+        let image = UIImage(systemName: "square.and.pencil", withConfiguration: config)
         button.setImage(image, for: .normal)
         button.tintColor = .systemYellow
-        button.translatesAutoresizingMaskIntoConstraints = false
+        button.contentHorizontalAlignment = .fill
+        button.contentVerticalAlignment = .fill
         return button
     }()
     
@@ -47,7 +60,7 @@ final class TaskListViewController: UIViewController {
         setupTableView()
         setupNavigationBar()
         setupSearchController()
-        setupBottomBar()
+        setupBottomPanel()
         presenter.viewDidLoad()
     }
     
@@ -81,6 +94,12 @@ final class TaskListViewController: UIViewController {
         tableView.register(TaskCell.self, forCellReuseIdentifier: TaskCell.reuseIdentifier)
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 88
+        
+        // Настраиваем нативный разделитель
+        tableView.separatorStyle = .singleLine
+        tableView.separatorColor = .systemGray.withAlphaComponent(0.2)
+        tableView.separatorInset = .zero
+        tableView.cellLayoutMarginsFollowReadableWidth = false
     }
     
     private func setupNavigationBar() {
@@ -127,36 +146,45 @@ final class TaskListViewController: UIViewController {
         definesPresentationContext = true
     }
     
-    private func setupBottomBar() {
-        let bottomBar = UIView()
-        bottomBar.backgroundColor = .black
-        bottomBar.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(bottomBar)
+    private func setupBottomPanel() {
+        view.addSubview(bottomPanel)
+        bottomPanel.translatesAutoresizingMaskIntoConstraints = false
         
-        bottomBar.addSubview(taskCountLabel)
-        bottomBar.addSubview(addButton)
+        bottomPanel.addSubview(taskCountLabel)
+        bottomPanel.addSubview(addButton)
+        
+        taskCountLabel.translatesAutoresizingMaskIntoConstraints = false
+        addButton.translatesAutoresizingMaskIntoConstraints = false
+        
+        let bottomPadding = view.safeAreaInsets.bottom
         
         NSLayoutConstraint.activate([
-            bottomBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            bottomBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            bottomBar.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            bottomBar.heightAnchor.constraint(equalToConstant: 50),
+            bottomPanel.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            bottomPanel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            bottomPanel.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            bottomPanel.heightAnchor.constraint(equalToConstant: 83 + bottomPadding),
             
-            taskCountLabel.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
-            taskCountLabel.leadingAnchor.constraint(equalTo: bottomBar.leadingAnchor, constant: 16),
+            taskCountLabel.centerXAnchor.constraint(equalTo: bottomPanel.centerXAnchor),
+            taskCountLabel.centerYAnchor.constraint(equalTo: bottomPanel.centerYAnchor, constant: -(bottomPadding/2 + 8)),
             
-            addButton.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
-            addButton.trailingAnchor.constraint(equalTo: bottomBar.trailingAnchor, constant: -16),
-            addButton.widthAnchor.constraint(equalToConstant: 44),
-            addButton.heightAnchor.constraint(equalToConstant: 44)
+            addButton.trailingAnchor.constraint(equalTo: bottomPanel.trailingAnchor, constant: -16),
+            addButton.centerYAnchor.constraint(equalTo: bottomPanel.centerYAnchor, constant: -(bottomPadding/2 + 8)),
+            addButton.widthAnchor.constraint(equalToConstant: 32),
+            addButton.heightAnchor.constraint(equalToConstant: 32)
         ])
+        
+        // Обновляем констрейнты tableView
+        if let tableViewBottomConstraint = tableView.constraints.first(where: { $0.firstAttribute == .bottom }) {
+            tableViewBottomConstraint.isActive = false
+        }
+        tableView.bottomAnchor.constraint(equalTo: bottomPanel.topAnchor).isActive = true
         
         addButton.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
     }
     
     private func updateTaskCount() {
-        taskCountLabel.text = "\(tasks.count) Задач"
-        emptyStateLabel.isHidden = !tasks.isEmpty
+        let totalTasks = tasks.count
+        taskCountLabel.text = "\(totalTasks) задач"
     }
     
     @objc private func addButtonTapped() {
