@@ -2,17 +2,18 @@ import UIKit
 import CoreData
 
 enum TaskListAssembly {
-    static func createModule(context: NSManagedObjectContext) -> TaskListViewController {
-        let userDefaultsService = UserDefaultsService()
-        let networkService = NetworkService()
-        let taskService = TaskService(
+    static func createModule(
+        context: NSManagedObjectContext,
+        taskService: TaskServiceProtocol? = nil
+    ) -> TaskListViewController {
+        let service = taskService ?? TaskService(
             context: context,
-            networkService: networkService,
-            userDefaultsService: userDefaultsService
+            networkService: NetworkService(),
+            userDefaultsService: UserDefaultsService()
         )
         
         let view = TaskListViewController()
-        let interactor = TaskListInteractor(taskService: taskService)
+        let interactor = TaskListInteractor(taskService: service)
         let router = TaskListRouter(viewController: view, context: context)
         let presenter = TaskListPresenter(
             view: view,

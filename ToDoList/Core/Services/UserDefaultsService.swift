@@ -13,10 +13,11 @@ final class UserDefaultsService: UserDefaultsServiceProtocol {
     
     var isFirstLaunch: Bool {
         get {
-            !defaults.bool(forKey: UserDefaultsKey.isFirstLaunch)
+            return !defaults.bool(forKey: UserDefaultsKey.isFirstLaunch)
         }
         set {
             defaults.set(!newValue, forKey: UserDefaultsKey.isFirstLaunch)
+            defaults.synchronize()
         }
     }
 } 

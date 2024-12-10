@@ -16,7 +16,10 @@ final class TaskListRouter: TaskListRouterProtocol {
     }
     
     func showCreateTask() {
-        let detailVC = TaskDetailAssembly.createModule(context: context)
+        let detailVC = TaskDetailAssembly.createModule(
+            context: context,
+            delegate: viewController as? TaskDetailDelegate
+        )
         let navigationController = UINavigationController(rootViewController: detailVC)
         viewController?.present(navigationController, animated: true)
     }
@@ -24,7 +27,8 @@ final class TaskListRouter: TaskListRouterProtocol {
     func showTaskDetail(for task: TaskEntity) {
         let detailVC = TaskDetailAssembly.createModule(
             context: context,
-            editingTask: task
+            editingTask: task,
+            delegate: viewController as? TaskDetailDelegate
         )
         let navigationController = UINavigationController(rootViewController: detailVC)
         viewController?.present(navigationController, animated: true)

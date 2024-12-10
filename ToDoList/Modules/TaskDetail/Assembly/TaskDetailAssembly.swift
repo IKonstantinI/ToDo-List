@@ -4,7 +4,8 @@ import CoreData
 enum TaskDetailAssembly {
     static func createModule(
         context: NSManagedObjectContext,
-        editingTask: TaskEntity? = nil
+        editingTask: TaskEntity? = nil,
+        delegate: TaskDetailDelegate? = nil
     ) -> UIViewController {
         let taskService = TaskService(context: context)
         let interactor = TaskDetailInteractor(taskService: taskService)
@@ -14,7 +15,8 @@ enum TaskDetailAssembly {
             view: view,
             interactor: interactor,
             router: router,
-            editingTask: editingTask
+            editingTask: editingTask,
+            delegate: delegate
         )
         
         view.configure(with: presenter)

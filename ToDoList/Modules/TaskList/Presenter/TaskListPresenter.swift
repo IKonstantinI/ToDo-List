@@ -6,12 +6,14 @@ protocol TaskListPresenterProtocol: AnyObject {
     func updateTaskStatus(_ task: TaskEntity)
     func searchTasks(query: String)
     func refreshTasks()
+    func viewWillAppear()
 }
 
 final class TaskListPresenter: TaskListPresenterProtocol {
     weak var view: TaskListViewProtocol?
     private let interactor: TaskListInteractorProtocol
     private let router: TaskListRouterProtocol
+    private var searchTask: Task<Void, Never>?
     
     init(
         view: TaskListViewProtocol,
@@ -80,7 +82,14 @@ final class TaskListPresenter: TaskListPresenterProtocol {
     }
     
     func searchTasks(query: String) {
-        Task {
+        // Отменяем предыдущий поиск
+        searchTask?.cancel()
+        
+        // Создаем новый поиск с задержкой
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: 300_000_000) // 300ms задержка
+            guard !Task.isCancelled else { return }
+            
             do {
                 let tasks = try await interactor.searchTasks(query: query)
                 await MainActor.run {
@@ -96,22 +105,20 @@ final class TaskListPresenter: TaskListPresenterProtocol {
     
     func refreshTasks() {
         Task {
-            await MainActor.run {
-                view?.showLoading()
-            }
-            
             do {
                 let tasks = try await interactor.fetchTasks()
                 await MainActor.run {
                     view?.updateTasks(with: tasks)
-                    view?.hideLoading()
                 }
             } catch {
                 await MainActor.run {
                     view?.showError(error)
-                    view?.hideLoading()
                 }
             }
         }
+    }
+    
+    func viewWillAppear() {
+        refreshTasks()
     }
 } 

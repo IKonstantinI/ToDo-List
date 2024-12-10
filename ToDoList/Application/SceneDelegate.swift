@@ -10,7 +10,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         options connectionOptions: UIScene.ConnectionOptions
     ) {
         guard let windowScene = (scene as? UIWindowScene) else { return }
-        
         let window = UIWindow(windowScene: windowScene)
         
         guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else { return }
@@ -19,7 +18,26 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
         context.automaticallyMergesChangesFromParent = true
         
-        let rootViewController = TaskListAssembly.createModule(context: context)
+        let userDefaultsService = UserDefaultsService()
+        let networkService = NetworkService()
+        let taskService = TaskService(
+            context: context,
+            networkService: networkService,
+            userDefaultsService: userDefaultsService
+        )
+        
+        Task {
+            do {
+                try await taskService.performInitialSetupIfNeeded()
+            } catch {
+                print("Initial setup failed:", error)
+            }
+        }
+        
+        let rootViewController = TaskListAssembly.createModule(
+            context: context,
+            taskService: taskService
+        )
         let navigationController = UINavigationController(rootViewController: rootViewController)
         
         window.rootViewController = navigationController

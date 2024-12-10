@@ -13,15 +13,7 @@ final class TaskListViewController: UIViewController {
     private let tableView = UITableView()
     private var tasks: [TaskEntity] = []
     private let searchController = UISearchController(searchResultsController: nil)
-    
-    private let emptyStateLabel: UILabel = {
-        let label = UILabel()
-        label.text = "Нет задач"
-        label.textColor = .systemGray
-        label.textAlignment = .center
-        label.isHidden = true
-        return label
-    }()
+    private let emptyStateView = EmptyStateView()
     
     private let bottomPanel: UIView = {
         let view = UIView()
@@ -64,12 +56,17 @@ final class TaskListViewController: UIViewController {
         presenter.viewDidLoad()
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        presenter.viewWillAppear()
+    }
+    
     private func setupUI() {
         view.backgroundColor = .black
         tableView.backgroundColor = .black
         tableView.separatorStyle = .none
         
-        [tableView, emptyStateLabel].forEach {
+        [tableView, emptyStateView].forEach {
             $0.translatesAutoresizingMaskIntoConstraints = false
             view.addSubview($0)
         }
@@ -80,8 +77,8 @@ final class TaskListViewController: UIViewController {
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -50),
             
-            emptyStateLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            emptyStateLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+            emptyStateView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            emptyStateView.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
         
         view.addSubview(activityIndicator)
@@ -133,6 +130,7 @@ final class TaskListViewController: UIViewController {
     
     private func setupSearchController() {
         searchController.searchResultsUpdater = self
+        searchController.delegate = self
         searchController.obscuresBackgroundDuringPresentation = false
         searchController.searchBar.searchTextField.backgroundColor = .systemGray6.withAlphaComponent(0.1)
         searchController.searchBar.tintColor = .white
@@ -180,6 +178,15 @@ final class TaskListViewController: UIViewController {
         tableView.bottomAnchor.constraint(equalTo: bottomPanel.topAnchor).isActive = true
         
         addButton.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
+    }
+    
+    private func updateUI() {
+        let isEmpty = tasks.isEmpty
+        emptyStateView.isHidden = !isEmpty
+        tableView.isHidden = isEmpty
+        
+        updateTaskCount()
+        tableView.reloadData()
     }
     
     private func updateTaskCount() {
@@ -246,15 +253,18 @@ extension TaskListViewController: UITableViewDataSource, UITableViewDelegate {
 extension TaskListViewController: TaskListViewProtocol {
     func updateTasks(with tasks: [TaskEntity]) {
         self.tasks = tasks
-        tableView.reloadData()
-        updateTaskCount()
+        updateUI()
     }
     
     func removeTask(_ task: TaskEntity) {
         if let index = tasks.firstIndex(where: { $0.id == task.id }) {
             tasks.remove(at: index)
-            tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
-            updateTaskCount()
+            
+            // Анимируем удаление
+            UIView.animate(withDuration: 0.3) {
+                self.tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .fade)
+                self.updateUI()
+            }
         }
     }
     
@@ -282,6 +292,27 @@ extension TaskListViewController: TaskListViewProtocol {
 extension TaskListViewController: UISearchResultsUpdating {
     func updateSearchResults(for searchController: UISearchController) {
         guard let query = searchController.searchBar.text else { return }
-        presenter.searchTasks(query: query)
+        
+        if query.isEmpty {
+            presenter.refreshTasks()
+        } else {
+            presenter.searchTasks(query: query)
+        }
+    }
+}
+
+extension TaskListViewController: UISearchControllerDelegate {
+    func didDismissSearchController(_ searchController: UISearchController) {
+        presenter.refreshTasks()
+    }
+    
+    func willDismissSearchController(_ searchController: UISearchController) {
+        searchController.searchBar.text = nil
+    }
+}
+
+extension TaskListViewController: TaskDetailDelegate {
+    func taskDidUpdate() {
+        presenter.refreshTasks()
     }
 } 

@@ -5,8 +5,13 @@ protocol TaskDetailPresenterProtocol: AnyObject {
     func cancelEditing()
 }
 
+protocol TaskDetailDelegate: AnyObject {
+    func taskDidUpdate()
+}
+
 final class TaskDetailPresenter: TaskDetailPresenterProtocol {
     weak var view: TaskDetailViewProtocol?
+    weak var delegate: TaskDetailDelegate?
     private let interactor: TaskDetailInteractorProtocol
     private let router: TaskDetailRouterProtocol
     private let editingTask: TaskEntity?
@@ -17,12 +22,14 @@ final class TaskDetailPresenter: TaskDetailPresenterProtocol {
         view: TaskDetailViewProtocol,
         interactor: TaskDetailInteractorProtocol,
         router: TaskDetailRouterProtocol,
-        editingTask: TaskEntity? = nil
+        editingTask: TaskEntity? = nil,
+        delegate: TaskDetailDelegate? = nil
     ) {
         self.view = view
         self.interactor = interactor
         self.router = router
         self.editingTask = editingTask
+        self.delegate = delegate
     }
     
     func viewDidLoad() {
@@ -41,6 +48,7 @@ final class TaskDetailPresenter: TaskDetailPresenterProtocol {
                     let _ = try await interactor.createTask(title: title, description: description)
                 }
                 await MainActor.run {
+                    delegate?.taskDidUpdate()
                     router.closeModule()
                 }
             } catch {

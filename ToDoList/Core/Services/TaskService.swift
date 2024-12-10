@@ -23,16 +23,25 @@ final class TaskService: TaskServiceProtocol {
     // MARK: - Initial Setup
     
     func performInitialSetupIfNeeded() async throws {
-        guard userDefaultsService.isFirstLaunch else { return }
+        print("🔍 Checking first launch: \(userDefaultsService.isFirstLaunch)")
         
+        // Если это не первый запуск - выходим
+        guard userDefaultsService.isFirstLaunch else {
+            print("❌ Not first launch, skipping initial setup")
+            return 
+        }
+        
+        print("🌐 Fetching initial data from API")
         let remoteTasks = try await networkService.fetchTasks()
         
         try await backgroundContext.perform {
+            print("💾 Saving \(remoteTasks.count) tasks to CoreData")
+            
             for task in remoteTasks {
                 let taskMO = TaskMO(context: self.backgroundContext)
                 taskMO.id = UUID()
                 taskMO.title = task.todo
-                taskMO.taskDescription = ""
+                taskMO.taskDescription = task.todo // Добавим описание
                 taskMO.createdAt = Date()
                 taskMO.isCompleted = task.completed
             }
@@ -41,7 +50,9 @@ final class TaskService: TaskServiceProtocol {
             try self.context.save()
         }
         
+        // Явно устанавливаем, что это был первый запуск
         userDefaultsService.isFirstLaunch = false
+        print("✅ Initial setup completed")
     }
     
     // MARK: - Create
